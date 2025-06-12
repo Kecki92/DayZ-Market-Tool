@@ -1,0 +1,76 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Verify logo file exists
+      run: |
+        if (Test-Path "assets\logo.ico") {
+          Write-Host "Logo file found"
+          Get-Item "assets\logo.ico" | Format-List
+        } else {
+          Write-Host "Logo file not found"
+          exit 1
+        }
+      shell: powershell
+      
+    - name: Build Windows executable
+      run: |
+        python build/build_exe.py
+        
+    - name: Verify executable format
+      run: |
+        if (Test-Path "dist\DayZ Market Tool.exe") {
+          Write-Host "Executable created successfully"
+          Get-Item "dist\DayZ Market Tool.exe" | Format-List
+          $size = (Get-Item "dist\DayZ Market Tool.exe").Length / 1MB
+          Write-Host "Size: $([math]::Round($size, 1)) MB"
+        } else {
+          Write-Host "Executable not found"
+          exit 1
+        }
+      shell: powershell
+      
+    - name: Upload Windows executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: dayz-market-tool-windows-exe
+        path: dist/DayZ Market Tool.exe
+        
+    - name: Create release package
+      run: |
+        New-Item -ItemType Directory -Path "release-package" -Force
+        Copy-Item "dist\DayZ Market Tool.exe" "release-package\" -Force
+        Copy-Item "dist\README_INSTALLER.md" "release-package\" -ErrorAction SilentlyContinue
+        Copy-Item "dist\BUILD_INSTRUCTIONS.md" "release-package\" -ErrorAction SilentlyContinue
+        Copy-Item "README.md" "release-package\" -ErrorAction SilentlyContinue
+        Copy-Item "LICENSE" "release-package\" -ErrorAction SilentlyContinue
+      shell: powershell
+      
+    - name: Upload release package
+      uses: actions/upload-artifact@v4
+      with:
+        name: dayz-market-tool-release-package
+        path: release-package/

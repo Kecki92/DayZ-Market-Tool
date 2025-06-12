@@ -1,0 +1,8 @@
+# Ignoriere große/kompilierte Dateien
+*.pkg
+*.exe
+*.zip
+*.pyc
+__pycache__/
+build/
+dist/
